@@ -1,6 +1,6 @@
 <!-- THIS FILE IS GENERATED. USE `cargo readme > README.md` TO REGENERATE IT. (REQUIRED `cargo-readme`) -->
 
-[![Crates.io](https://img.shields.io/crates/v/sfdl.svg?style=flat-square)](https://crates.io/crates/sfdl) [![docs.rs](https://img.shields.io/docsrs/:crate?style=flat-square)](https://docs.rs/sfdl) ![Build](https://img.shields.io/github/actions/workflow/status/markhaehnel/sfdl/main?style=flat-square)
+[![Crates.io](https://img.shields.io/crates/v/sfdl.svg?style=flat-square)](https://crates.io/crates/sfdl) [![docs.rs](https://img.shields.io/docsrs/sfdl?style=flat-square)](https://docs.rs/sfdl) ![Build](https://img.shields.io/github/actions/workflow/status/markhaehnel/sfdl/main?style=flat-square)
 
 # {{crate}}
 
