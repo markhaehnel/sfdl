@@ -20,6 +20,8 @@
 //! sfdl.write("decrypted.sfdl").unwrap();
 //! ```
 //!
+//! For detailed information consult the [docs](https://docs.rs/sfdl).
+//!
 //! # References
 //!
 //! - [SFDL Container Format](https://github.com/n0ix/SFDL.NET/wiki/How-it-Works-(SFDL-File-documentation))
