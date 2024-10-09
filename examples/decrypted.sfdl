@@ -1,0 +1,36 @@
+<SFDLFile xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Description>MyDescription</Description>
+    <Uploader>MyUploader</Uploader>
+    <SFDLFileVersion>6</SFDLFileVersion>
+    <Encrypted>false</Encrypted>
+    <ConnectionInfo>
+        <Host>127.0.0.1</Host>
+        <Port>21</Port>
+        <Username>MyUser</Username>
+        <Password>MyPassword</Password>
+        <AuthRequired>true</AuthRequired>
+        <DataConnectionType>AutoPassive</DataConnectionType>
+        <DataType>Binary</DataType>
+        <CharacterEncoding>Standard</CharacterEncoding>
+        <EncryptionMode>None</EncryptionMode>
+        <ListMethod>ForceList</ListMethod>
+        <DefaultPath>/</DefaultPath>
+        <ForceSingleConnection>false</ForceSingleConnection>
+        <DataStaleDetection>true</DataStaleDetection>
+        <SpecialServerMode>false</SpecialServerMode>
+    </ConnectionInfo>
+    <Packages>
+        <SFDLPackage>
+            <Packagename />
+            <BulkFolderMode>true</BulkFolderMode>
+            <BulkFolderList>
+                <BulkFolder>
+                    <BulkFolderPath>/path/to/files/</BulkFolderPath>
+                    <PackageName>MyPackage</PackageName>
+                </BulkFolder>
+            </BulkFolderList>
+        </SFDLPackage>
+    </Packages>
+    <MaxDownloadThreads>3</MaxDownloadThreads>
+</SFDLFile>

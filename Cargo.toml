@@ -1,0 +1,26 @@
+[package]
+name = "sfdl"
+description = "Parse, encrypt and decrypt SFDL container files"
+authors = ["Mark Hähnel <hello@markhaehnel.de>"]
+version = "0.1.0"
+edition = "2021"
+repository = "https://github.com/markhaehnel/sfdl-rs.git"
+keywords = ["sfdl", "parse", "decrypt", "encrypt"]
+categories = ["parsing", "cryptography"]
+license = "Apache-2.0 OR MIT"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+aes = { version = "0.8.4" }
+base64 = { version = "0.22.1" }
+cbc = { version = "0.1.2" }
+cipher = { version = "0.4.4", features = ["std"] }
+md5 = { version = "0.7.0" }
+quick-xml = { version = "0.36.2", features = ["serialize"] }
+rand = { version = "0.8.5" }
+serde = { version = "1.0.210", features = ["derive"] }
+thiserror = { version = "1.0.64" }
+
+[badges]
+github = { repository = "markhaehnel/sfdl" }
