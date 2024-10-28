@@ -28,8 +28,10 @@ pub enum DecryptError {
 
 #[derive(Error, Debug)]
 pub enum ParseError {
-    #[error("invalid xml")]
-    InvalidSfdl(#[from] quick_xml::DeError),
+    #[error("invalid xml deserialize")]
+    InvalidSfdlDeserialize(#[from] quick_xml::DeError),
+    #[error("invalid xml seriale")]
+    InvalidSfdlSerialize(#[from] quick_xml::SeError),
 }
 
 #[derive(Error, Debug)]
