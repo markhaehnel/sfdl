@@ -212,7 +212,7 @@ impl SfdlFile {
     where
         R: BufRead,
     {
-        quick_xml::de::from_reader(reader).map_err(ParseError::InvalidSfdl)
+        quick_xml::de::from_reader(reader).map_err(ParseError::InvalidSfdlDeserialize)
     }
 
     /// Read a file from a string.
@@ -254,7 +254,7 @@ impl SfdlFile {
     }
 
     pub fn write<P: AsRef<Path>>(&self, path: P) -> Result<(), SfdlError> {
-        let content = quick_xml::se::to_string(self).map_err(ParseError::InvalidSfdl)?;
+        let content = quick_xml::se::to_string(self).map_err(ParseError::InvalidSfdlSerialize)?;
         fs::write(path, content)?;
 
         Ok(())
@@ -265,7 +265,7 @@ impl FromStr for SfdlFile {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        quick_xml::de::from_str(s).map_err(ParseError::InvalidSfdl)
+        quick_xml::de::from_str(s).map_err(ParseError::InvalidSfdlDeserialize)
     }
 }
 
