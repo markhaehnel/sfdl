@@ -19,5 +19,5 @@ cipher = { version = "0.4.4", features = ["std"] }
 md5 = { version = "0.7.0" }
 quick-xml = { version = "0.37.0", features = ["serialize"] }
 rand = { version = "0.8.5" }
-serde = { version = "1.0.213", features = ["derive"] }
+serde = { version = "1.0.214", features = ["derive"] }
 thiserror = { version = "1.0.67" }
