@@ -20,4 +20,4 @@ md5 = { version = "0.7.0" }
 quick-xml = { version = "0.37.1", features = ["serialize"] }
 rand = { version = "0.8.5" }
 serde = { version = "1.0.215", features = ["derive"] }
-thiserror = { version = "2.0.3" }
+thiserror = { version = "2.0.6" }
