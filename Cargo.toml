@@ -2,7 +2,7 @@
 name = "sfdl"
 description = "Parse, encrypt and decrypt SFDL container files"
 authors = ["Mark Hähnel <hello@markhaehnel.de>"]
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 repository = "https://github.com/markhaehnel/sfdl.git"
 keywords = ["sfdl", "parse", "decrypt", "encrypt"]

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4](https://github.com/markhaehnel/sfdl/compare/v0.2.3...v0.2.4) - 2024-12-17
+
+### Other
+
+- *(deps)* bump serde from 1.0.215 to 1.0.216 (#27)
+- *(deps)* bump thiserror from 2.0.6 to 2.0.7 (#26)
+- *(deps)* bump thiserror from 2.0.3 to 2.0.6 (#24)
+
 ## [0.2.3](https://github.com/markhaehnel/sfdl/compare/v0.2.2...v0.2.3) - 2024-11-19
 
 ### Other
