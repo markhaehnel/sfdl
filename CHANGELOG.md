@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6](https://github.com/markhaehnel/sfdl/compare/v0.2.5...v0.2.6) - 2024-12-30
+
+### Other
+
+- *(deps)* bump quick-xml from 0.37.1 to 0.37.2 (#31)
+- *(deps)* bump serde from 1.0.216 to 1.0.217 (#30)
+
 ## [0.2.5](https://github.com/markhaehnel/sfdl/compare/v0.2.4...v0.2.5) - 2024-12-23
 
 ### Other
