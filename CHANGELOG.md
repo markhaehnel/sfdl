@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.8](https://github.com/markhaehnel/sfdl/compare/v0.2.7...v0.2.8) - 2025-02-05
+
+### Other
+
+- *(deps)* bump rand from 0.8.5 to 0.9.0 (#35)
+
 ## [0.2.7](https://github.com/markhaehnel/sfdl/compare/v0.2.6...v0.2.7) - 2025-01-13
 
 ### Other
