@@ -6,7 +6,7 @@ use base64::Engine;
 use cbc::{Decryptor, Encryptor};
 use cipher::block_padding::Pkcs7;
 use cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit};
-use rand::Rng;
+use rand::prelude::*;
 
 use crate::error::{DecryptError, EncryptError};
 use crate::sfdl::SfdlFile;
@@ -36,7 +36,7 @@ pub(crate) fn encrypt_value(data: &str, password: &str) -> Result<String, Encryp
     let digest = md5::compute(password.as_bytes());
     let key = digest.as_slice();
 
-    let iv = rand::thread_rng().gen::<[u8; 16]>();
+    let iv = rand::rng().random::<[u8; 16]>();
     let encryptor = Encryptor::<Aes128>::new(key.into(), &iv.into());
     let encrypted_data = encryptor.encrypt_padded_vec_mut::<Pkcs7>(data.as_bytes());
     let encrypted_data = [iv.to_vec(), encrypted_data].concat();
