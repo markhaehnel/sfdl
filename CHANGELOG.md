@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.15](https://github.com/markhaehnel/sfdl/compare/v0.2.14...v0.2.15) - 2025-12-29
+
+### Other
+
+- *(deps)* bump md5 from 0.7.0 to 0.8.0 ([#50](https://github.com/markhaehnel/sfdl/pull/50))
+- *(deps)* bump rand from 0.9.1 to 0.9.2 ([#52](https://github.com/markhaehnel/sfdl/pull/52))
+- *(deps)* bump quick-xml from 0.37.5 to 0.38.3 ([#54](https://github.com/markhaehnel/sfdl/pull/54))
+- *(deps)* bump thiserror from 2.0.12 to 2.0.17 ([#59](https://github.com/markhaehnel/sfdl/pull/59))
+- *(deps)* bump serde from 1.0.219 to 1.0.228 ([#60](https://github.com/markhaehnel/sfdl/pull/60))
+- *(deps)* bump actions/checkout from 4 to 6 ([#61](https://github.com/markhaehnel/sfdl/pull/61))
+
 ## [0.2.14](https://github.com/markhaehnel/sfdl/compare/v0.2.13...v0.2.14) - 2025-05-04
 
 ### Other
