@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.16](https://github.com/markhaehnel/sfdl/compare/v0.2.15...v0.2.16) - 2026-01-21
+
+### Other
+
+- *(deps)* bump thiserror from 2.0.17 to 2.0.18 ([#64](https://github.com/markhaehnel/sfdl/pull/64))
+- *(deps)* bump quick-xml from 0.38.4 to 0.39.0 ([#63](https://github.com/markhaehnel/sfdl/pull/63))
+
 ## [0.2.15](https://github.com/markhaehnel/sfdl/compare/v0.2.14...v0.2.15) - 2025-12-29
 
 ### Other
