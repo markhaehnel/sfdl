@@ -5,7 +5,7 @@ use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 use cbc::{Decryptor, Encryptor};
 use cipher::block_padding::Pkcs7;
-use cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit};
+use cipher::{BlockModeDecrypt, BlockModeEncrypt, KeyIvInit};
 use rand::prelude::*;
 
 use crate::error::{DecryptError, EncryptError};
@@ -14,14 +14,15 @@ use crate::sfdl::SfdlFile;
 /// Decrypts a value using AES-128-CBC with PKCS7 padding. The password is hashed using MD5 and used as the encryption key.
 pub(crate) fn decrypt_value(encrypted_data: &str, password: &str) -> Result<String, DecryptError> {
     let digest = md5::compute(password);
-    let key = digest.as_slice();
+    let key: &[u8; 16] = &digest.0;
 
     let decoded = BASE64_STANDARD.decode(encrypted_data)?;
     let (iv, encrypted_data) = decoded.split_at(16);
+    let iv: &[u8; 16] = iv.try_into().unwrap();
     let decryptor = Decryptor::<Aes128>::new(key.into(), iv.into());
 
     let decrypted = decryptor
-        .decrypt_padded_vec_mut::<Pkcs7>(encrypted_data)
+        .decrypt_padded_vec::<Pkcs7>(encrypted_data)
         .map_err(|_| DecryptError::InvalidPassword)?;
 
     Ok(String::from_utf8(decrypted)?)
@@ -34,11 +35,11 @@ pub(crate) fn encrypt_value(data: &str, password: &str) -> Result<String, Encryp
     }
 
     let digest = md5::compute(password.as_bytes());
-    let key = digest.as_slice();
+    let key: &[u8; 16] = &digest.0;
 
     let iv = rand::rng().random::<[u8; 16]>();
-    let encryptor = Encryptor::<Aes128>::new(key.into(), &iv.into());
-    let encrypted_data = encryptor.encrypt_padded_vec_mut::<Pkcs7>(data.as_bytes());
+    let encryptor = Encryptor::<Aes128>::new(key.into(), (&iv).into());
+    let encrypted_data = encryptor.encrypt_padded_vec::<Pkcs7>(data.as_bytes());
     let encrypted_data = [iv.to_vec(), encrypted_data].concat();
     Ok(BASE64_STANDARD.encode(&encrypted_data))
 }
