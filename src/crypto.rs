@@ -1,4 +1,51 @@
 //! Cryptographic functions for decrypting and encrypting SFDL files.
+//!
+//! This module implements the same low-level primitive as the official
+//! `n0ix/SFDL.Container` reference implementation:
+//!
+//! - AES-128-CBC with PKCS#7 padding.
+//! - Key = MD5(password). The password bytes are interpreted as UTF-8.
+//! - A 16-byte random IV is generated for every field.
+//! - The IV is prepended to the ciphertext and the whole blob is base64 encoded.
+//!
+//! The crate encrypts and decrypts exactly the fields the reference
+//! implementation operates on:
+//!
+//! - `SFDLFile.Description`
+//! - `SFDLFile.Uploader`
+//! - `ConnectionInfo.Host`
+//! - `ConnectionInfo.Password`
+//! - `ConnectionInfo.Username`
+//! - For every `SFDLPackage`:
+//!   - `SFDLPackage.Packagename`
+//!   - For every `BulkFolder`:
+//!     - `BulkFolder.BulkFolderPath`
+//!     - `BulkFolder.PackageName`
+//!   - For every `FileInfo` in an optional `FileList`:
+//!     - `FileInfo.DirectoryPath`
+//!     - `FileInfo.DirectoryRoot`
+//!     - `FileInfo.FileName`
+//!     - `FileInfo.FileFullPath`
+//!     - `FileInfo.PackageName`
+//!
+//! `ConnectionInfo.DefaultPath` is intentionally left plaintext because the
+//! reference implementation never encrypts it.
+//!
+//! # Security note
+//!
+//! The SFDL format itself uses unsalted MD5 key derivation and provides no
+//! integrity check (MAC/HMAC/AEAD). This means encrypted containers are
+//! malleable and passwords should be strong enough to resist brute-force
+//! attacks. These limitations are inherent to the format, not a bug in this
+//! crate.
+//!
+//! # Atomicity
+//!
+//! `encrypt_sfdl` and `decrypt_sfdl` are pure functions that return a new
+//! struct. The public [`SfdlFile::encrypt`](crate::SfdlFile::encrypt)
+//! and [`SfdlFile::decrypt`](crate::SfdlFile::decrypt) methods only
+//! replace the caller's value after the whole operation succeeds, so a
+//! malformed field or wrong password never leaves the object half changed.
 
 use aes::Aes128;
 use base64::prelude::BASE64_STANDARD;
@@ -8,129 +55,139 @@ use cipher::block_padding::Pkcs7;
 use cipher::{BlockModeDecrypt, BlockModeEncrypt, KeyIvInit};
 use rand::prelude::*;
 
-use crate::error::{DecryptError, EncryptError};
+use crate::error::DecryptError;
 use crate::sfdl::SfdlFile;
 
-/// Decrypts a value using AES-128-CBC with PKCS7 padding. The password is hashed using MD5 and used as the encryption key.
-pub(crate) fn decrypt_value(encrypted_data: &str, password: &str) -> Result<String, DecryptError> {
-    let digest = md5::compute(password);
-    let key: &[u8; 16] = &digest.0;
+const AES_BLOCK_SIZE: usize = 16;
+
+/// Decrypts a single value using the SFDL AES-128-CBC primitive.
+pub fn decrypt_value(encrypted_data: &str, password: &str) -> Result<String, DecryptError> {
+    let digest = md5::compute(password.as_bytes());
+    let key: &[u8; AES_BLOCK_SIZE] = &digest.0;
 
     let decoded = BASE64_STANDARD.decode(encrypted_data)?;
-    let (iv, encrypted_data) = decoded.split_at(16);
-    let iv: &[u8; 16] = iv.try_into().unwrap();
-    let decryptor = Decryptor::<Aes128>::new(key.into(), iv.into());
+    if decoded.len() < AES_BLOCK_SIZE {
+        return Err(DecryptError::InvalidCiphertextLength {
+            expected: AES_BLOCK_SIZE,
+            got: decoded.len(),
+        });
+    }
 
+    let (iv, ciphertext) = decoded.split_at(AES_BLOCK_SIZE);
+    let iv: &[u8; AES_BLOCK_SIZE] =
+        iv.try_into()
+            .map_err(|_| DecryptError::InvalidCiphertextLength {
+                expected: AES_BLOCK_SIZE,
+                got: iv.len(),
+            })?;
+
+    let decryptor = Decryptor::<Aes128>::new(key.into(), iv.into());
     let decrypted = decryptor
-        .decrypt_padded_vec::<Pkcs7>(encrypted_data)
+        .decrypt_padded_vec::<Pkcs7>(ciphertext)
         .map_err(|_| DecryptError::InvalidPassword)?;
 
     Ok(String::from_utf8(decrypted)?)
 }
 
-/// Encrypts a value using AES-128-CBC with PKCS7 padding. The password is hashed using MD5 and used as the encryption key.
-pub(crate) fn encrypt_value(data: &str, password: &str) -> Result<String, EncryptError> {
-    if password.is_empty() {
-        return Err(EncryptError::EmptyPassword);
-    }
-
+/// Encrypts a single value using the SFDL AES-128-CBC primitive.
+///
+/// Empty passwords are accepted to match the reference implementation, even
+/// though they result in weak encryption.
+pub fn encrypt_value(data: &str, password: &str) -> String {
     let digest = md5::compute(password.as_bytes());
-    let key: &[u8; 16] = &digest.0;
+    let key: &[u8; AES_BLOCK_SIZE] = &digest.0;
 
-    let iv = rand::rng().random::<[u8; 16]>();
+    let iv = rand::rng().random::<[u8; AES_BLOCK_SIZE]>();
     let encryptor = Encryptor::<Aes128>::new(key.into(), (&iv).into());
     let encrypted_data = encryptor.encrypt_padded_vec::<Pkcs7>(data.as_bytes());
     let encrypted_data = [iv.to_vec(), encrypted_data].concat();
-    Ok(BASE64_STANDARD.encode(&encrypted_data))
+    BASE64_STANDARD.encode(&encrypted_data)
 }
 
-/// Decrypts all encrypted values in a SFDL file.
-pub(crate) fn decrypt_sfdl(sfdl: &mut SfdlFile, password: &str) -> Result<(), DecryptError> {
-    sfdl.description = decrypt_value(sfdl.description.as_str(), password)?;
-    sfdl.uploader = decrypt_value(sfdl.uploader.as_str(), password)?;
-    sfdl.connection_info.host = decrypt_value(sfdl.connection_info.host.as_str(), password)?;
-    sfdl.connection_info.password =
-        decrypt_value(sfdl.connection_info.password.as_str(), password)?;
-    sfdl.connection_info.username =
-        decrypt_value(sfdl.connection_info.username.as_str(), password)?;
-    sfdl.connection_info.default_path =
-        decrypt_value(sfdl.connection_info.default_path.as_str(), password)?;
-    sfdl.packages[0]
-        .sfdl_package
-        .bulk_folder_list
-        .bulk_folder
-        .bulk_folder_path = decrypt_value(
-        sfdl.packages[0]
-            .sfdl_package
-            .bulk_folder_list
-            .bulk_folder
-            .bulk_folder_path
-            .as_str(),
-        password,
-    )?;
-    sfdl.packages[0]
-        .sfdl_package
-        .bulk_folder_list
-        .bulk_folder
-        .package_name = decrypt_value(
-        sfdl.packages[0]
-            .sfdl_package
-            .bulk_folder_list
-            .bulk_folder
-            .package_name
-            .as_str(),
-        password,
-    )?;
+/// Returns a new [`SfdlFile`] with all decryptable fields decrypted.
+///
+/// The input is not modified. On error the original value remains unchanged.
+pub fn decrypt_sfdl(sfdl: &SfdlFile, password: &str) -> Result<SfdlFile, DecryptError> {
+    let mut out = sfdl.clone();
+    decrypt_into(&mut out, password)?;
+    Ok(out)
+}
+
+fn decrypt_into(sfdl: &mut SfdlFile, password: &str) -> Result<(), DecryptError> {
+    sfdl.description = decrypt_value(&sfdl.description, password)?;
+    sfdl.uploader = decrypt_value(&sfdl.uploader, password)?;
+    sfdl.connection_info.host = decrypt_value(&sfdl.connection_info.host, password)?;
+    sfdl.connection_info.password = decrypt_value(&sfdl.connection_info.password, password)?;
+    sfdl.connection_info.username = decrypt_value(&sfdl.connection_info.username, password)?;
+    // ConnectionInfo.DefaultPath is intentionally not decrypted (see module docs).
+
+    for pkg in sfdl.packages.iter_mut() {
+        pkg.package_name = decrypt_value(&pkg.package_name, password)?;
+
+        for folder in &mut pkg.bulk_folder_list.bulk_folder {
+            folder.bulk_folder_path = decrypt_value(&folder.bulk_folder_path, password)?;
+            folder.package_name = decrypt_value(&folder.package_name, password)?;
+        }
+
+        if let Some(file_list) = pkg.file_list.as_mut() {
+            for file in &mut file_list.file_info {
+                file.directory_path = decrypt_value(&file.directory_path, password)?;
+                file.directory_root = decrypt_value(&file.directory_root, password)?;
+                file.file_name = decrypt_value(&file.file_name, password)?;
+                file.file_full_path = decrypt_value(&file.file_full_path, password)?;
+                file.package_name = decrypt_value(&file.package_name, password)?;
+            }
+        }
+    }
 
     Ok(())
 }
 
-/// Encrypts all sensitive values in a SFDL file.
-pub(crate) fn encrypt_sfdl(sfdl: &mut SfdlFile, password: &str) -> Result<(), EncryptError> {
-    sfdl.description = encrypt_value(sfdl.description.as_str(), password)?;
-    sfdl.uploader = encrypt_value(sfdl.uploader.as_str(), password)?;
-    sfdl.connection_info.host = encrypt_value(sfdl.connection_info.host.as_str(), password)?;
-    sfdl.connection_info.password =
-        encrypt_value(sfdl.connection_info.password.as_str(), password)?;
-    sfdl.connection_info.username =
-        encrypt_value(sfdl.connection_info.username.as_str(), password)?;
-    sfdl.connection_info.default_path =
-        encrypt_value(sfdl.connection_info.default_path.as_str(), password)?;
-    sfdl.packages[0]
-        .sfdl_package
-        .bulk_folder_list
-        .bulk_folder
-        .bulk_folder_path = encrypt_value(
-        sfdl.packages[0]
-            .sfdl_package
-            .bulk_folder_list
-            .bulk_folder
-            .bulk_folder_path
-            .as_str(),
-        password,
-    )?;
-    sfdl.packages[0]
-        .sfdl_package
-        .bulk_folder_list
-        .bulk_folder
-        .package_name = encrypt_value(
-        sfdl.packages[0]
-            .sfdl_package
-            .bulk_folder_list
-            .bulk_folder
-            .package_name
-            .as_str(),
-        password,
-    )?;
+/// Returns a new [`SfdlFile`] with all encryptable fields encrypted.
+///
+/// The input is not modified.
+pub fn encrypt_sfdl(sfdl: &SfdlFile, password: &str) -> SfdlFile {
+    let mut out = sfdl.clone();
+    encrypt_into(&mut out, password);
+    out
+}
 
-    Ok(())
+fn encrypt_into(sfdl: &mut SfdlFile, password: &str) {
+    sfdl.description = encrypt_value(&sfdl.description, password);
+    sfdl.uploader = encrypt_value(&sfdl.uploader, password);
+    sfdl.connection_info.host = encrypt_value(&sfdl.connection_info.host, password);
+    sfdl.connection_info.password = encrypt_value(&sfdl.connection_info.password, password);
+    sfdl.connection_info.username = encrypt_value(&sfdl.connection_info.username, password);
+    // ConnectionInfo.DefaultPath is intentionally not encrypted (see module docs).
+
+    for pkg in sfdl.packages.iter_mut() {
+        pkg.package_name = encrypt_value(&pkg.package_name, password);
+
+        for folder in &mut pkg.bulk_folder_list.bulk_folder {
+            folder.bulk_folder_path = encrypt_value(&folder.bulk_folder_path, password);
+            folder.package_name = encrypt_value(&folder.package_name, password);
+        }
+
+        if let Some(file_list) = pkg.file_list.as_mut() {
+            for file in &mut file_list.file_info {
+                file.directory_path = encrypt_value(&file.directory_path, password);
+                file.directory_root = encrypt_value(&file.directory_root, password);
+                file.file_name = encrypt_value(&file.file_name, password);
+                file.file_full_path = encrypt_value(&file.file_full_path, password);
+                file.package_name = encrypt_value(&file.package_name, password);
+            }
+        }
+    }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use std::collections::HashMap;
 
-    use crate::sfdl::{BulkFolder, BulkFolderList, ConnectionInfo, Package, SfdlPackage};
+    use crate::sfdl::{
+        BulkFolder, BulkFolderList, ConnectionInfo, FileInfo, FileList, Packages, SfdlPackage,
+    };
 
     use super::*;
 
@@ -152,6 +209,19 @@ mod tests {
             let decrypted_data = decrypt_value(encrypted_data, password).unwrap();
             assert_eq!(decrypted_data, plain);
         }
+    }
+
+    #[test]
+    fn test_decrypt_entry_short_ciphertext() {
+        let encrypted_data = "YQ=="; // base64("a") -> 1 byte
+        let decrypted_data = decrypt_value(encrypted_data, "S3cr3tP4ssw0rd!");
+        assert_eq!(
+            decrypted_data,
+            Err(DecryptError::InvalidCiphertextLength {
+                expected: AES_BLOCK_SIZE,
+                got: 1,
+            })
+        );
     }
 
     #[test]
@@ -191,7 +261,7 @@ mod tests {
         let inputs = vec!["MyTestString1", "测试", "", "\n", "🧪"];
 
         for input in inputs {
-            let encrypted_data = encrypt_value(input, password).unwrap();
+            let encrypted_data = encrypt_value(input, password);
             let decrypted_data = decrypt_value(encrypted_data.as_str(), password).unwrap();
 
             assert_eq!(decrypted_data, input);
@@ -200,15 +270,13 @@ mod tests {
 
     #[test]
     fn test_encrypt_entry_empty_password() {
-        let encrypted_data = encrypt_value("MyTestString1", "").err();
-        assert_eq!(encrypted_data, Some(EncryptError::EmptyPassword));
+        let encrypted_data = encrypt_value("MyTestString1", "");
+        let decrypted_data = decrypt_value(&encrypted_data, "").unwrap();
+        assert_eq!(decrypted_data, "MyTestString1");
     }
 
-    #[test]
-    fn test_encrypt_sfdl() {
-        let password = "S3cr3tP4ssw0rd!";
-
-        let mut sfdl = SfdlFile {
+    fn sample_sfdl() -> SfdlFile {
+        SfdlFile {
             description: "MyDescription".to_string(),
             uploader: "MyUploader".to_string(),
             encrypted: true,
@@ -219,124 +287,166 @@ mod tests {
                 default_path: "MyDefaultPath".to_string(),
                 ..Default::default()
             },
-            packages: vec![Package {
-                sfdl_package: SfdlPackage {
+            packages: Packages {
+                package: vec![SfdlPackage {
+                    package_name: "MyPackageName".to_string(),
                     bulk_folder_list: BulkFolderList {
-                        bulk_folder: BulkFolder {
+                        bulk_folder: vec![BulkFolder {
                             bulk_folder_path: "MyBulkFolderPath".to_string(),
-                            package_name: "MyPackageName".to_string(),
-                        },
+                            package_name: "MyBulkFolderPackage".to_string(),
+                        }],
                     },
                     ..Default::default()
-                },
-            }],
+                }],
+            },
             ..Default::default()
-        };
+        }
+    }
 
-        let sfdl_clone = sfdl.clone();
+    #[test]
+    fn test_encrypt_sfdl() {
+        let password = "S3cr3tP4ssw0rd!";
+        let sfdl = sample_sfdl();
 
-        encrypt_sfdl(&mut sfdl, password).unwrap();
+        let encrypted = encrypt_sfdl(&sfdl, password);
 
-        assert_ne!(sfdl.description, sfdl_clone.description);
-        assert_ne!(sfdl.uploader, sfdl_clone.uploader);
-        assert_ne!(sfdl.connection_info.host, sfdl_clone.connection_info.host);
+        assert_ne!(encrypted.description, sfdl.description);
+        assert_ne!(encrypted.uploader, sfdl.uploader);
+        assert_ne!(encrypted.connection_info.host, sfdl.connection_info.host);
         assert_ne!(
-            sfdl.connection_info.password,
-            sfdl_clone.connection_info.password
+            encrypted.connection_info.password,
+            sfdl.connection_info.password
         );
         assert_ne!(
-            sfdl.connection_info.username,
-            sfdl_clone.connection_info.username
+            encrypted.connection_info.username,
+            sfdl.connection_info.username
+        );
+        // DefaultPath must stay untouched, matching the reference implementation.
+        assert_eq!(
+            encrypted.connection_info.default_path,
+            sfdl.connection_info.default_path
         );
         assert_ne!(
-            sfdl.connection_info.default_path,
-            sfdl_clone.connection_info.default_path
+            encrypted.packages[0].bulk_folder_list.bulk_folder[0].bulk_folder_path,
+            sfdl.packages[0].bulk_folder_list.bulk_folder[0].bulk_folder_path
         );
         assert_ne!(
-            sfdl.packages[0]
-                .sfdl_package
-                .bulk_folder_list
-                .bulk_folder
-                .bulk_folder_path,
-            sfdl_clone.packages[0]
-                .sfdl_package
-                .bulk_folder_list
-                .bulk_folder
-                .bulk_folder_path
+            encrypted.packages[0].bulk_folder_list.bulk_folder[0].package_name,
+            sfdl.packages[0].bulk_folder_list.bulk_folder[0].package_name
         );
-        assert_ne!(
-            sfdl.packages[0]
-                .sfdl_package
-                .bulk_folder_list
-                .bulk_folder
-                .package_name,
-            sfdl_clone.packages[0]
-                .sfdl_package
-                .bulk_folder_list
-                .bulk_folder
-                .package_name
-        );
-
-        decrypt_sfdl(&mut sfdl, password).unwrap();
-
-        assert_eq!(sfdl.description, sfdl_clone.description);
     }
 
     #[test]
     fn test_decrypt_sfdl() {
         let password = "S3cr3tP4ssw0rd!";
+        let sfdl = sample_sfdl();
 
-        let mut sfdl = SfdlFile {
-            description: "XzfqqoMjo1SmIOjtmZNLHXrF490d2n6lg+gTkRgCKoE=".to_string(),
-            uploader: "9UOvz1YkIDBCYa0QICNyHg3jl9WNcI6qxCP0C/hGVOk=".to_string(),
+        let encrypted = encrypt_sfdl(&sfdl, password);
+        let decrypted = decrypt_sfdl(&encrypted, password).unwrap();
+
+        assert_eq!(decrypted, sfdl);
+    }
+
+    #[test]
+    fn test_round_trip_multiple_packages_and_bulk_folders() {
+        let password = "S3cr3tP4ssw0rd!";
+        let sfdl = SfdlFile {
+            description: "Desc".to_string(),
+            uploader: "Uploader".to_string(),
             encrypted: true,
             connection_info: ConnectionInfo {
-                host: "7KWh4OBnP4Jsef/L6IQLs+vdmeuqx0SdOUjcekxGeQk=".to_string(),
-                username: "LwSvdBsjAOsb1LSK6SzJanRrAtAZrRitDEmKte6RJqo=".to_string(),
-                password: "GBIBRNcq6XIkcN5DSUWpo6nlkdjdXTjQdTvA1y1ZCSc=".to_string(),
-                default_path: "QLXmGG+Q45RX2dH4RVmzApj155uMQoMsSBdaZJQ2Z6Q=".to_string(),
+                host: "host1".to_string(),
+                username: "user1".to_string(),
+                password: "pass1".to_string(),
+                default_path: "/default".to_string(),
                 ..Default::default()
             },
-            packages: vec![Package {
-                sfdl_package: SfdlPackage {
-                    bulk_folder_list: BulkFolderList {
-                        bulk_folder: BulkFolder {
-                            bulk_folder_path:
-                                "u8TayXwCs5dvXGfT45eTfGdkWDVp3NZLC5/bQ+7foM4vdqWhK36gzA1TLsZzSea9"
-                                    .to_string(),
-                            package_name: "fFbUrccronJv4nif7AnQr2b5CpePeafFT4dbzV+yvpU="
-                                .to_string(),
+            packages: Packages {
+                package: vec![
+                    SfdlPackage {
+                        package_name: "PkgA".to_string(),
+                        bulk_folder_list: BulkFolderList {
+                            bulk_folder: vec![
+                                BulkFolder {
+                                    bulk_folder_path: "/a/1".to_string(),
+                                    package_name: "PkgA".to_string(),
+                                },
+                                BulkFolder {
+                                    bulk_folder_path: "/a/2".to_string(),
+                                    package_name: "PkgA".to_string(),
+                                },
+                            ],
                         },
+                        ..Default::default()
                     },
-                    ..Default::default()
-                },
-            }],
+                    SfdlPackage {
+                        package_name: "PkgB".to_string(),
+                        bulk_folder_list: BulkFolderList {
+                            bulk_folder: vec![BulkFolder {
+                                bulk_folder_path: "/b".to_string(),
+                                package_name: "PkgB".to_string(),
+                            }],
+                        },
+                        ..Default::default()
+                    },
+                ],
+            },
             ..Default::default()
         };
 
-        decrypt_sfdl(&mut sfdl, password).unwrap();
+        let decrypted = decrypt_sfdl(&encrypt_sfdl(&sfdl, password), password).unwrap();
+        assert_eq!(decrypted, sfdl);
+    }
 
-        assert_eq!(sfdl.description, "MyDescription");
-        assert_eq!(sfdl.uploader, "MyUploader");
-        assert_eq!(sfdl.connection_info.host, "MyHost");
-        assert_eq!(sfdl.connection_info.username, "MyUsername");
-        assert_eq!(sfdl.connection_info.password, "MyPassword");
-        assert_eq!(sfdl.connection_info.default_path, "MyDefaultPath");
-        assert_eq!(
-            sfdl.packages[0]
-                .sfdl_package
-                .bulk_folder_list
-                .bulk_folder
-                .bulk_folder_path,
-            "MyBulkFolderPath"
-        );
-        assert_eq!(
-            sfdl.packages[0]
-                .sfdl_package
-                .bulk_folder_list
-                .bulk_folder
-                .package_name,
-            "MyPackageName"
-        );
+    #[test]
+    fn test_round_trip_file_list() {
+        let password = "S3cr3tP4ssw0rd!";
+        let sfdl = SfdlFile {
+            description: "FileListDesc".to_string(),
+            uploader: "Uploader".to_string(),
+            encrypted: true,
+            connection_info: ConnectionInfo {
+                host: "host".to_string(),
+                username: "user".to_string(),
+                password: "pass".to_string(),
+                default_path: "/".to_string(),
+                ..Default::default()
+            },
+            packages: Packages {
+                package: vec![SfdlPackage {
+                    package_name: "ListPkg".to_string(),
+                    bulk_folder_mode: false,
+                    bulk_folder_list: BulkFolderList::default(),
+                    file_list: Some(FileList {
+                        file_info: vec![
+                            FileInfo {
+                                file_name: "a.txt".to_string(),
+                                directory_root: "/root".to_string(),
+                                directory_path: "/root/dir".to_string(),
+                                file_full_path: "/root/dir/a.txt".to_string(),
+                                file_size: 100,
+                                file_hash_type: "MD5".to_string(),
+                                file_hash: "abc".to_string(),
+                                package_name: "ListPkg".to_string(),
+                            },
+                            FileInfo {
+                                file_name: "b.bin".to_string(),
+                                directory_root: "/root".to_string(),
+                                directory_path: "/root/dir".to_string(),
+                                file_full_path: "/root/dir/b.bin".to_string(),
+                                file_size: 200,
+                                file_hash_type: "MD5".to_string(),
+                                file_hash: "def".to_string(),
+                                package_name: "ListPkg".to_string(),
+                            },
+                        ],
+                    }),
+                }],
+            },
+            ..Default::default()
+        };
+
+        let decrypted = decrypt_sfdl(&encrypt_sfdl(&sfdl, password), password).unwrap();
+        assert_eq!(decrypted, sfdl);
     }
 }

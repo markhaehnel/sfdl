@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SFDLFile xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Description>Multi package description</Description>
+    <Uploader>Multi uploader</Uploader>
+    <SFDLFileVersion>6</SFDLFileVersion>
+    <Encrypted>false</Encrypted>
+    <ConnectionInfo>
+        <Host>ftp.example.com</Host>
+        <Port>21</Port>
+        <Username>multiuser</Username>
+        <Password>multipass</Password>
+        <AuthRequired>true</AuthRequired>
+        <DataConnectionType>AutoPassive</DataConnectionType>
+        <DataType>Binary</DataType>
+        <CharacterEncoding>UTF8</CharacterEncoding>
+        <EncryptionMode>None</EncryptionMode>
+        <ListMethod>ForceList</ListMethod>
+        <DefaultPath>/default/multi</DefaultPath>
+        <ForceSingleConnection>false</ForceSingleConnection>
+        <DataStaleDetection>true</DataStaleDetection>
+        <SpecialServerMode>false</SpecialServerMode>
+    </ConnectionInfo>
+    <Packages>
+        <SFDLPackage>
+            <Packagename>PkgA</Packagename>
+            <BulkFolderMode>true</BulkFolderMode>
+            <BulkFolderList>
+                <BulkFolder>
+                    <BulkFolderPath>/pkg/a/one</BulkFolderPath>
+                    <PackageName>PkgA</PackageName>
+                </BulkFolder>
+                <BulkFolder>
+                    <BulkFolderPath>/pkg/a/two</BulkFolderPath>
+                    <PackageName>PkgA</PackageName>
+                </BulkFolder>
+            </BulkFolderList>
+        </SFDLPackage>
+        <SFDLPackage>
+            <Packagename>PkgB</Packagename>
+            <BulkFolderMode>true</BulkFolderMode>
+            <BulkFolderList>
+                <BulkFolder>
+                    <BulkFolderPath>/pkg/b</BulkFolderPath>
+                    <PackageName>PkgB</PackageName>
+                </BulkFolder>
+            </BulkFolderList>
+        </SFDLPackage>
+    </Packages>
+    <MaxDownloadThreads>3</MaxDownloadThreads>
+</SFDLFile>

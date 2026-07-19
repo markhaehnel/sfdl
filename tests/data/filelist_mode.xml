@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SFDLFile xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Description>File list description</Description>
+    <Uploader>File list uploader</Uploader>
+    <SFDLFileVersion>6</SFDLFileVersion>
+    <Encrypted>false</Encrypted>
+    <ConnectionInfo>
+        <Host>ftp.example.com</Host>
+        <Port>21</Port>
+        <Username>listuser</Username>
+        <Password>listpass</Password>
+        <AuthRequired>true</AuthRequired>
+        <DataConnectionType>AutoPassive</DataConnectionType>
+        <DataType>Binary</DataType>
+        <CharacterEncoding>UTF8</CharacterEncoding>
+        <EncryptionMode>None</EncryptionMode>
+        <ListMethod>ForceList</ListMethod>
+        <DefaultPath>/default/list</DefaultPath>
+        <ForceSingleConnection>false</ForceSingleConnection>
+        <DataStaleDetection>true</DataStaleDetection>
+        <SpecialServerMode>false</SpecialServerMode>
+    </ConnectionInfo>
+    <Packages>
+        <SFDLPackage>
+            <Packagename>FileListPackage</Packagename>
+            <BulkFolderMode>false</BulkFolderMode>
+            <BulkFolderList></BulkFolderList>
+            <FileList>
+                <FileInfo>
+                    <FileName>readme.txt</FileName>
+                    <DirectoryRoot>/root</DirectoryRoot>
+                    <DirectoryPath>/root/files</DirectoryPath>
+                    <FileFullPath>/root/files/readme.txt</FileFullPath>
+                    <FileSize>42</FileSize>
+                    <FileHashType>MD5</FileHashType>
+                    <FileHash>d41d8cd98f00b204e9800998ecf8427e</FileHash>
+                    <PackageName>FileListPackage</PackageName>
+                </FileInfo>
+                <FileInfo>
+                    <FileName>data.bin</FileName>
+                    <DirectoryRoot>/root</DirectoryRoot>
+                    <DirectoryPath>/root/files</DirectoryPath>
+                    <FileFullPath>/root/files/data.bin</FileFullPath>
+                    <FileSize>1024</FileSize>
+                    <FileHashType>MD5</FileHashType>
+                    <FileHash>abc123def456</FileHash>
+                    <PackageName>FileListPackage</PackageName>
+                </FileInfo>
+            </FileList>
+        </SFDLPackage>
+    </Packages>
+    <MaxDownloadThreads>3</MaxDownloadThreads>
+</SFDLFile>
