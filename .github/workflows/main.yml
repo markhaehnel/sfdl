@@ -47,5 +47,7 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: "1.97"
-      - run: cargo test --locked --all-targets --all-features
+      - uses: taiki-e/install-action@nextest
+      - run: cargo nextest run --locked --all-targets --all-features
+      - run: cargo test --doc --locked --all-features
       - run: cargo doc --no-deps
