@@ -15,10 +15,10 @@ license = "Apache-2.0 OR MIT"
 [dependencies]
 aes = { version = "0.9.1" }
 base64 = { version = "0.22.1" }
-cbc = { version = "0.2.0" }
-cipher = { version = "0.5.1", features = ["block-padding", "alloc"] }
-md5 = { version = "0.8.0" }
-quick-xml = { version = "0.39.3", features = ["serialize"] }
-rand = { version = "0.10.1" }
-serde = { version = "1.0.228", features = ["derive"] }
-thiserror = { version = "2.0.18" }
+cbc = { version = "0.2.1" }
+cipher = { version = "0.5.2", features = ["block-padding", "alloc"] }
+md5 = { version = "0.8.1" }
+quick-xml = { version = "0.41.0", features = ["serialize"] }
+rand = { version = "0.10.2" }
+serde = { version = "1.0.229", features = ["derive"] }
+thiserror = { version = "2.0.19" }
