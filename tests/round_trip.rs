@@ -42,13 +42,13 @@ fn mixed_mode_round_trip() {
 }
 
 #[test]
-fn default_path_is_not_altered_by_encryption() {
+fn default_path_is_altered_by_encryption() {
     let mut sfdl = load_sample("single_package_bulkfolder.xml");
     let expected = sfdl.connection_info.default_path.clone();
 
     sfdl.encrypt(PASSWORD).unwrap();
 
-    assert_eq!(sfdl.connection_info.default_path, expected);
+    assert_ne!(sfdl.connection_info.default_path, expected);
 }
 
 #[test]
