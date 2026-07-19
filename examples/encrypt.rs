@@ -1,11 +1,24 @@
-use sfdl::sfdl::SfdlFile;
+//! Encrypt an example SFDL file.
 
-fn main() {
-    let mut sfdl = SfdlFile::from_file("examples/decrypted.sfdl").unwrap();
+use std::path::Path;
 
-    sfdl.encrypt("S3cr3tP4ssw0rd!").unwrap();
+use sfdl::SfdlFile;
 
-    println!("{:#?}", sfdl);
+const PASSWORD: &str = "S3cr3tP4ssw0rd!";
 
-    sfdl.write("encrypted.sfdl").unwrap();
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let input = Path::new("examples/decrypted.sfdl");
+    let output_dir = Path::new("examples/out");
+    let output = output_dir.join("encrypted.sfdl");
+
+    let mut sfdl = SfdlFile::from_file(input)?;
+
+    sfdl.encrypt(PASSWORD)?;
+
+    std::fs::create_dir_all(output_dir)?;
+    sfdl.write(&output)?;
+
+    println!("Encrypted {} -> {}", input.display(), output.display());
+
+    Ok(())
 }

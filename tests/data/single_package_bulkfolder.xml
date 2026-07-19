@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SFDLFile xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Description>Single package description</Description>
+    <Uploader>Single uploader</Uploader>
+    <SFDLFileVersion>6</SFDLFileVersion>
+    <Encrypted>false</Encrypted>
+    <ConnectionInfo>
+        <Host>ftp.example.com</Host>
+        <Port>21</Port>
+        <Username>user1</Username>
+        <Password>pass1</Password>
+        <AuthRequired>true</AuthRequired>
+        <DataConnectionType>AutoPassive</DataConnectionType>
+        <DataType>Binary</DataType>
+        <CharacterEncoding>UTF8</CharacterEncoding>
+        <EncryptionMode>None</EncryptionMode>
+        <ListMethod>ForceList</ListMethod>
+        <DefaultPath>/default/one</DefaultPath>
+        <ForceSingleConnection>false</ForceSingleConnection>
+        <DataStaleDetection>true</DataStaleDetection>
+        <SpecialServerMode>false</SpecialServerMode>
+    </ConnectionInfo>
+    <Packages>
+        <SFDLPackage>
+            <Packagename>SinglePackage</Packagename>
+            <BulkFolderMode>true</BulkFolderMode>
+            <BulkFolderList>
+                <BulkFolder>
+                    <BulkFolderPath>/single/bulk</BulkFolderPath>
+                    <PackageName>SinglePackage</PackageName>
+                </BulkFolder>
+            </BulkFolderList>
+        </SFDLPackage>
+    </Packages>
+    <MaxDownloadThreads>3</MaxDownloadThreads>
+</SFDLFile>
