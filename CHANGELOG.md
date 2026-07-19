@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0](https://github.com/markhaehnel/sfdl/compare/v0.2.17...v0.3.0) - 2026-07-19
+
+### Added
+
+- add sfdl CLI example and fix DefaultPath decryption ([#84](https://github.com/markhaehnel/sfdl/pull/84))
+- *(crypto)* implement encryption correctness, full field coverage, and atomic operations ([#82](https://github.com/markhaehnel/sfdl/pull/82))
+
+### Other
+
+- *(deps)* bump actions/checkout from 6 to 7 ([#79](https://github.com/markhaehnel/sfdl/pull/79))
+
 ## [0.2.17](https://github.com/markhaehnel/sfdl/compare/v0.2.16...v0.2.17) - 2026-05-05
 
 ### Other
