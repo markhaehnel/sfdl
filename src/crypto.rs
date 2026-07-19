@@ -16,6 +16,7 @@
 //! - `ConnectionInfo.Host`
 //! - `ConnectionInfo.Password`
 //! - `ConnectionInfo.Username`
+//! - `ConnectionInfo.DefaultPath`
 //! - For every `SFDLPackage`:
 //!   - `SFDLPackage.Packagename`
 //!   - For every `BulkFolder`:
@@ -27,9 +28,6 @@
 //!     - `FileInfo.FileName`
 //!     - `FileInfo.FileFullPath`
 //!     - `FileInfo.PackageName`
-//!
-//! `ConnectionInfo.DefaultPath` is intentionally left plaintext because the
-//! reference implementation never encrypts it.
 //!
 //! # Security note
 //!
@@ -119,7 +117,8 @@ fn decrypt_into(sfdl: &mut SfdlFile, password: &str) -> Result<(), DecryptError>
     sfdl.connection_info.host = decrypt_value(&sfdl.connection_info.host, password)?;
     sfdl.connection_info.password = decrypt_value(&sfdl.connection_info.password, password)?;
     sfdl.connection_info.username = decrypt_value(&sfdl.connection_info.username, password)?;
-    // ConnectionInfo.DefaultPath is intentionally not decrypted (see module docs).
+    sfdl.connection_info.default_path =
+        decrypt_value(&sfdl.connection_info.default_path, password)?;
 
     for pkg in sfdl.packages.iter_mut() {
         pkg.package_name = decrypt_value(&pkg.package_name, password)?;
@@ -158,7 +157,7 @@ fn encrypt_into(sfdl: &mut SfdlFile, password: &str) {
     sfdl.connection_info.host = encrypt_value(&sfdl.connection_info.host, password);
     sfdl.connection_info.password = encrypt_value(&sfdl.connection_info.password, password);
     sfdl.connection_info.username = encrypt_value(&sfdl.connection_info.username, password);
-    // ConnectionInfo.DefaultPath is intentionally not encrypted (see module docs).
+    sfdl.connection_info.default_path = encrypt_value(&sfdl.connection_info.default_path, password);
 
     for pkg in sfdl.packages.iter_mut() {
         pkg.package_name = encrypt_value(&pkg.package_name, password);
@@ -321,8 +320,8 @@ mod tests {
             encrypted.connection_info.username,
             sfdl.connection_info.username
         );
-        // DefaultPath must stay untouched, matching the reference implementation.
-        assert_eq!(
+        // DefaultPath must be encrypted.
+        assert_ne!(
             encrypted.connection_info.default_path,
             sfdl.connection_info.default_path
         );

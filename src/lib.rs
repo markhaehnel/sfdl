@@ -33,13 +33,11 @@
 //! - `ConnectionInfo.Host`
 //! - `ConnectionInfo.Password`
 //! - `ConnectionInfo.Username`
+//! - `ConnectionInfo.DefaultPath`
 //! - Every `SFDLPackage.Packagename`
 //! - Every `BulkFolder.BulkFolderPath` and `BulkFolder.PackageName`
 //! - Every `FileInfo.DirectoryPath`, `DirectoryRoot`, `FileName`,
 //!   `FileFullPath`, and `PackageName` for file-list packages
-//!
-//! `ConnectionInfo.DefaultPath` is **not** encrypted because the reference
-//! implementation leaves it plaintext.
 //!
 //! # Cryptographic primitive
 //!
